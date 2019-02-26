@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"strings"
 )
 
@@ -38,40 +40,33 @@ func String2Num(str string) string {
 }
 
 func MarkTask(challenge string, response string, assessment map[string]string) {
-	correct := String2Num(challenge)
-	// all correct
-	if correct == response {
-		for _, ch := range challenge {
-			number := mapping[string(ch)]
-			if number == "" {
+	respReader := strings.NewReader(response)
+	for _, ch := range challenge {
+		number := String2Num(string(ch))
+		if number == "" {
+			continue
+		}
+
+		respCh, _, err := respReader.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				assessment[number] += "-"
 				continue
 			}
-			assessment[number] += "+"
+			log.Fatalln(err)
 		}
-		return
+		if number == string(respCh) {
+			assessment[number] += "+"
+			continue
+		}
+		assessment[number] += "-"
 	}
-
-	// var err error
-	// cReader := strings.NewReader(String2Num(challenge))
-	// rReader := strings.NewReader(response)
-	// for err == nil {
-	// 	chCorr, _, err := cReader.ReadRune()
-	// 	if err == io.EOF {
-	// 		err = nil
-	// 		for chResp := rReader.ReadRune(); err == nil
-
-	// 	}
-	// 	if err != nil {
-
-	// 	}
-
-	// 	correct
-	// }
-	//return map[string]string{}
+	return
 }
 
 func main() {
 	MarkTask("appi", "66", map[string]string{})
+
 	// rand.Seed(time.Now().UTC().UnixNano())
 	// for i := 0; i < 25; i++ {
 	// 	fmt.Println(rand.Intn(10))

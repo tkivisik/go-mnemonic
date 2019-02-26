@@ -98,13 +98,25 @@ func TestMarkTask(t *testing.T) {
 			desc:      "all wrong",
 			challenge: "lukk",
 			response:  "000",
-			expected:  map[string]string{"1": "-", "2": "--"},
+			expected:  map[string]string{"1": "-", "2": "--", "0": "---"},
 		},
 		{
 			desc:      "partially wrong",
 			challenge: "lukk",
 			response:  "132",
-			expected:  map[string]string{"1": "+", "2": "-+"},
+			expected:  map[string]string{"1": "+", "2": "-+", "3": "-"},
+		},
+		{
+			desc:      "no response",
+			challenge: "lukk",
+			response:  "",
+			expected:  map[string]string{"1": "-", "2": "--"},
+		},
+		{
+			desc:      "too long",
+			challenge: "luu",
+			response:  "123456",
+			expected:  map[string]string{"1": "+", "2": "-", "3": "-", "4": "-", "5": "-", "6": "-"},
 		},
 	}
 	for _, tC := range testCases {
