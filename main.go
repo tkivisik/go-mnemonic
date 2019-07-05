@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -60,15 +61,15 @@ func MarkTask(challenge string, response string, assessment map[string]string) {
 			continue
 		}
 		assessment[number] += "-"
+		assessment[string(respCh)] += "-"
 	}
 	return
 }
 
 func main() {
-	MarkTask("appi", "66", map[string]string{})
-
-	// rand.Seed(time.Now().UTC().UnixNano())
-	// for i := 0; i < 25; i++ {
-	// 	fmt.Println(rand.Intn(10))
-	// }
+	flag.Parse()
+	input := flag.Args()
+	for i := 0; i < len(input); i++ {
+		fmt.Printf("%10s ==> %s\n", input[i], String2Num(input[i]))
+	}
 }
