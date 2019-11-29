@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var mapping = map[string]string{
+var Mapping = map[string]string{
 	"n": "0",
 	"l": "1",
 	"k": "2",
@@ -35,35 +35,69 @@ func String2Num(str string) string {
 	output := strings.Builder{}
 	for _, ch := range str {
 		ch := strings.ToLower(string(ch))
-		fmt.Fprint(&output, mapping[ch])
+		fmt.Fprint(&output, Mapping[ch])
 	}
 	return output.String()
 }
 
-func MarkTask(challenge string, response string, assessment map[string]string) {
+func MarkTask(challenge string, response string) (assessment map[string]string) {
+	chalReader := strings.NewReader(challenge)
 	respReader := strings.NewReader(response)
-	for _, ch := range challenge {
-		number := String2Num(string(ch))
-		if number == "" {
+	var chalCh, respCh rune
+	var chalFinished, respFinished bool
+	var err error
+	var want string
+	for {
+		if chalFinished == false {
+			chalCh, _, err = chalReader.ReadRune()
+			if err != nil {
+				if err == io.EOF {
+					chalFinished = true
+				} else {
+					log.Println(err)
+				}
+			}
+
+			want = String2Num(string(chalCh))
+			if want == "" {
+				continue
+			}
+		}
+
+		if respFinished == false {
+			respCh, _, err = respReader.ReadRune()
+			if err != nil {
+				if err == io.EOF {
+					respFinished = true
+				} else {
+					log.Println(err)
+				}
+			}
+		}
+
+		if chalFinished {
+			if respFinished {
+				// BREAKS THE FOR{}
+				break
+			}
+			got := string(respCh)
+			assessment[got] += "-"
 			continue
 		}
 
-		respCh, _, err := respReader.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				assessment[number] += "-"
-				continue
-			}
-			log.Fatalln(err)
-		}
-		if number == string(respCh) {
-			assessment[number] += "+"
+		if respFinished {
+			assessment[want] += "-"
 			continue
 		}
-		assessment[number] += "-"
-		assessment[string(respCh)] += "-"
+
+		if got := string(respCh); want != got {
+			assessment[want] += "-"
+			assessment[got] += "-"
+			continue
+		}
+		assessment[want] += "+"
 	}
-	return
+	return assessment
 }
 
 func main() {
