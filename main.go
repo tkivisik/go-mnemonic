@@ -150,29 +150,61 @@ func greet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World! %s", time.Now())
 }
 
+var ChallengeTmpl = template.Must(template.New("").Parse(`{{define "Challenge"}}
+  Mis on {{.}} tähtedena?
+  <form action="/answer" method="post">
+    <input type="text" name="answer" autofocus>
+    <input type="hidden" name="challenge" value="{{.}}"><br>
+    <input type="submit" value="Submit">
+  </form>
+{{end}}`))
+
 func challenge(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
 	rand.Seed(time.Now().UnixNano())
 	challenge := fmt.Sprintf("%02d", rand.Intn(100))
 
-	tmpl, err := template.New("").Parse(`{{define "Challenge"}}Mis on {{.}} tähtedena?
-	<form action="/answer" method="post">
-	  <input type="text" name="answer">
-	  <input type="hidden" name="challenge" value="{{.}}">
-	  <input type="submit" value="Submit">
-	</form>{{end}}`)
+	err := ChallengeTmpl.ExecuteTemplate(w, "Challenge", challenge)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = tmpl.ExecuteTemplate(w, "Challenge", challenge)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// fmt.Fprintf(w, "Mis on %q tähtedena? ", challenge)
 
 }
+
+type Challenge struct {
+	Question   string
+	Answer     string
+	Assessment map[string]string
+}
+
+type Resulter interface {
+	Show(*template.Template, *Challenge)
+}
+
+type ResultData struct {
+	w io.Writer
+}
+
+func (r ResultData) Show(t *template.Template, c *Challenge) {
+	err := t.ExecuteTemplate(r.w, "result", c)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+var ResultTmpl = template.Must(template.New("").Parse(`{{define "result"}}
+    <html>
+	  <head>
+		<title>Mnemoharjutused</title>
+	  </head>
+	  <body>
+	    Challenge: {{.Question}}<br>
+	    Answer: {{.Answer}}<br>
+		Assessment: {{.Assessment}}<br>
+		<button onclick="window.location.href = '/numberchallenge';" autofocus>Click Here</button>
+	  </body>
+	</html>{{end}}`))
 
 func answer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
@@ -184,17 +216,19 @@ func answer(w http.ResponseWriter, r *http.Request) {
 	answer := r.FormValue("answer")
 	assessment := AssessFromNumber(challenge, answer)
 
-	fmt.Fprintf(w, `<html>
-	  <head>
-		<title>Mnemoharjutused</title>
-	  </head>
-	  <body>
-	    Challenge: %s<br>
-	    Answer: %s<br>
-		Assessment: %v<br>
-		<button onclick="window.location.href = '/numberchallenge';">Click Here</button>
-	  </body>
-	</html>`, challenge, answer, assessment)
+	resultData := Challenge{
+		Question:   challenge,
+		Answer:     answer,
+		Assessment: assessment,
+	}
+
+	rd := ResultData{w: w}
+	rd.Show(ResultTmpl, &resultData)
+
+	// err = ResultTmpl.ExecuteTemplate(w, "result", resultData)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 }
 
 // AssessFromNumber will be public API, should be tested.
