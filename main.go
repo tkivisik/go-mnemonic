@@ -4,13 +4,17 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 var Mapping = map[string]string{
@@ -129,41 +133,68 @@ func main() {
 		fmt.Printf("%10s ==> %s\n", input[i], String2Num(input[i]))
 	}
 
-	// fmt.Println(TrainFromNumbers(5))
-	fmt.Println(TrainFromText(5))
-
-	// reader := bufio.NewReader(os.Stdin)
-
-	// //
-	// // assessment := map[string]string{}
-	// numChallenge := "0123"
-	// fmt.Printf("Mis on %q tähtedena?\n", numChallenge)
-	// textAnswer, _ := reader.ReadString('\n')
-	// textAnswer = strings.TrimSpace(textAnswer)
-	// assessment := AssessFromNumber(numChallenge, textAnswer)
-	// fmt.Println(assessment)
-
-	// sumAssessment := map[string]string{}
-	// fmt.Println("EMPTY", sumAssessment)
-	// for k, v := range assessment {
-	// 	sumAssessment[k] = v
-	// }
-	// fmt.Println("FIRST", sumAssessment)
-
-	// //
-	// textChallenge := "kalamaja"
-	// fmt.Printf("Mis on %q numbrina?\n", textChallenge)
-	// numAnswer, _ := reader.ReadString('\n')
-	// numAnswer = strings.TrimSpace(numAnswer)
-	// assessment = AssessFromText(textChallenge, numAnswer)
-	// fmt.Println(assessment)
-
-	// for k, v := range assessment {
-	// 	sumAssessment[k] += v
-	// }
-
 	// fmt.Println("TOTAL\n", sumAssessment)
 
+	r := mux.NewRouter()
+	r.HandleFunc("/", greet)
+	r.HandleFunc("/numberchallenge", challenge).Methods(http.MethodGet)
+	r.HandleFunc("/answer", answer).Methods(http.MethodPost)
+	log.Println(http.ListenAndServe(":8080", r))
+
+	fmt.Println(TrainFromNumbers(1))
+	fmt.Println(TrainFromText(1))
+
+}
+
+func greet(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello World! %s", time.Now())
+}
+
+func challenge(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+
+	rand.Seed(time.Now().UnixNano())
+	challenge := fmt.Sprintf("%02d", rand.Intn(100))
+
+	tmpl, err := template.New("").Parse(`{{define "Challenge"}}Mis on {{.}} tähtedena?
+	<form action="/answer" method="post">
+	  <input type="text" name="answer">
+	  <input type="hidden" name="challenge" value="{{.}}">
+	  <input type="submit" value="Submit">
+	</form>{{end}}`)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = tmpl.ExecuteTemplate(w, "Challenge", challenge)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// fmt.Fprintf(w, "Mis on %q tähtedena? ", challenge)
+
+}
+
+func answer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	err := r.ParseForm()
+	if err != nil {
+		fmt.Println(err)
+	}
+	challenge := r.FormValue("challenge")
+	answer := r.FormValue("answer")
+	assessment := AssessFromNumber(challenge, answer)
+
+	fmt.Fprintf(w, `<html>
+	  <head>
+		<title>Mnemoharjutused</title>
+	  </head>
+	  <body>
+	    Challenge: %s<br>
+	    Answer: %s<br>
+		Assessment: %v<br>
+		<button onclick="window.location.href = '/numberchallenge';">Click Here</button>
+	  </body>
+	</html>`, challenge, answer, assessment)
 }
 
 // AssessFromNumber will be public API, should be tested.
