@@ -1,8 +1,10 @@
-package main
+package mnemo_test
 
 import (
 	"fmt"
 	"testing"
+
+	"github.com/tkivisik/go-mnemonic/mnemo"
 )
 
 func TestString2Num(t *testing.T) {
@@ -27,9 +29,8 @@ func TestString2Num(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			if output := String2Num(tC.input); output != tC.want {
+			if output := mnemo.String2Num(tC.input); output != tC.want {
 				t.Errorf("String2Num(%q) = %q, want %q", tC.input, output, tC.want)
-				// t.Fatalf("want f(%s) = %s, got: %s", tC.input, tC.want, output)
 			}
 		})
 	}
@@ -52,7 +53,7 @@ func TestAssessFromText(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			if assessment := AssessFromText(tC.challenge, tC.response); fmt.Sprint(assessment) != fmt.Sprint(tC.want) {
+			if assessment := mnemo.AssessFromText(tC.challenge, tC.response); fmt.Sprint(assessment) != fmt.Sprint(tC.want) {
 				t.Errorf("MarkTask(%q, %q) = %v, want: %v", tC.challenge, tC.response, assessment, tC.want)
 			}
 		})
@@ -76,7 +77,7 @@ func TestAssessFromNumber(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			if assessment := AssessFromNumber(tC.challenge, tC.response); fmt.Sprint(assessment) != fmt.Sprint(tC.want) {
+			if assessment := mnemo.AssessFromNumber(tC.challenge, tC.response); fmt.Sprint(assessment) != fmt.Sprint(tC.want) {
 				t.Errorf("MarkTask(%q, %q) = %v, want: %v", tC.challenge, tC.response, assessment, tC.want)
 			}
 		})
