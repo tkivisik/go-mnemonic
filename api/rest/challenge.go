@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -28,29 +29,42 @@ var ChallengeTmpl = template.Must(template.New("").Parse(`{{define "Challenge"}}
 
 func challenge(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	cookie, err := r.Cookie("mnemo-challenge")
-	if err != nil {
-		cookie = &http.Cookie{Name: "mnemo-challenge", Value: "1"}
-	}
-	counter, err := strconv.Atoi(cookie.Value)
-	if err != nil {
-		cookie = &http.Cookie{Name: "mnemo-challenge", Value: "1"}
-	}
-	cookie.Value = fmt.Sprintf("%d", counter+1)
+
+	cookie := IncrementCookie("mnemo-challenge", r)
 	http.SetCookie(w, cookie)
 
 	rand.Seed(time.Now().UnixNano())
 	challenge := fmt.Sprintf("%02d", rand.Intn(100))
 
-	err = ChallengeTmpl.ExecuteTemplate(w, "Challenge", challenge)
+	err := ChallengeTmpl.ExecuteTemplate(w, "Challenge", challenge)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 }
 
+func IncrementCookie(name string, r *http.Request) *http.Cookie {
+	cookie, err := r.Cookie("mnemo-challenge")
+	if err != nil {
+		b64 := base64.StdEncoding.EncodeToString([]byte("0"))
+		cookie = &http.Cookie{Name: "mnemo-challenge", Value: b64}
+	}
+	valueB, err := base64.StdEncoding.DecodeString(cookie.Value)
+	value := string(valueB)
+
+	counter, err := strconv.Atoi(value)
+	if err != nil {
+		b64 := base64.StdEncoding.EncodeToString([]byte("0"))
+		cookie = &http.Cookie{Name: "mnemo-challenge", Value: b64}
+	}
+	b64 := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%d", counter+1)))
+	cookie.Value = b64
+	return cookie
+}
+
 type Challenge struct {
-	Question   string
-	Answer     string
-	Assessment map[string]string
+	Question        string
+	Answer          string
+	Assessment      map[string]string
+	AssessmentTotal map[string]string
 }
