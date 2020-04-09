@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"text/template"
 	"time"
 )
@@ -27,11 +28,21 @@ var ChallengeTmpl = template.Must(template.New("").Parse(`{{define "Challenge"}}
 
 func challenge(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
+	cookie, err := r.Cookie("mnemo-challenge")
+	if err != nil {
+		cookie = &http.Cookie{Name: "mnemo-challenge", Value: "1"}
+	}
+	counter, err := strconv.Atoi(cookie.Value)
+	if err != nil {
+		cookie = &http.Cookie{Name: "mnemo-challenge", Value: "1"}
+	}
+	cookie.Value = fmt.Sprintf("%d", counter+1)
+	http.SetCookie(w, cookie)
 
 	rand.Seed(time.Now().UnixNano())
 	challenge := fmt.Sprintf("%02d", rand.Intn(100))
 
-	err := ChallengeTmpl.ExecuteTemplate(w, "Challenge", challenge)
+	err = ChallengeTmpl.ExecuteTemplate(w, "Challenge", challenge)
 	if err != nil {
 		fmt.Println(err)
 	}
